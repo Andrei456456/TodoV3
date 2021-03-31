@@ -2,40 +2,39 @@ import { Task } from "./Task.js";
 
 export class TaskManager {
     constructor(store) {
-        this.store = store;
+        this._store = store;
     }
 
     checkStore() {
-        return this.store.checkStore();
+        return this._store.checkStore();
     }
 
     getStore() {
-        return this.store.getBaseTasks();
+        return this._store.getBaseTasks();
     }
 
-    createTask(title, date) {
+    async createTask(title, date) {
        
         this.id = `task${Date.now()}`;
-        this.isDone = false;
         const newTask = Task.deparse({
             id: this.id,
             title: title,
             date: date,
-            isDone: this.isDone
+            isDone: false
         });
         console.log(newTask);
-        return this.store.addTask(newTask);
+        await this._store.addTask(newTask);
     }
 
     getLastTask() {
-        return this.store.getLastTask();
+        return this._store.getLastTask();
     }
 
-    deleteTask(id) {
-        return this.store.removeTask(id);
+    async deleteTask(id) {
+        return await this._store.removeTask(id);
     }
 
     toggleTask(id) { 
-       return this.store.updateTask(id);
+       return this._store.updateTask(id);
     }
 }

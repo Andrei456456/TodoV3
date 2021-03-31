@@ -9,45 +9,45 @@ export class Store extends AbstractStore {
         this._dbTasks = [];
     }
 
-    setDataBase (newDataBase) {
-        this._dbTasks = newDataBase;
-    }
+    
 
-    async checkStore() {
-        await super.checkStore();
+    checkStore() {
+        // await super.checkStore();
         return Promise.resolve(this._dbTasks.length > 0);
     }
 
-    async getBaseTasks() {
-        await super.getBaseTasks();
+    setBaseTasks(dataBase) {
+        return Promise.resolve( this._dbTasks = dataBase);
+    }
+
+    removeBaseTasks() {
+        return Promise.resolve(this._dbTasks = []);
+    }
+
+    getBaseTasks() {
+        // await super.getBaseTasks();
         return Promise.resolve(this._dbTasks);
     }
 
     async addTask(task) {
-        await super.addTask();
-        return Promise.resolve(async() => {
-            await this.checkStore()
-            .then(async (checkStore) => {
-                if (checkStore) {
-                    await this.getBaseTasks()
-                    .then((currentBase) => {
-                        currentBase.push(task);
-                        this.setDataBase(currentBase);
-                    });
-                } else {
-                    const newCurrentBase = [];
-                    newCurrentBase.push(task);
-                    this.setDataBase(newCurrentBase); 
-                }
-            })
-            .then(() => {
-                console.log(this._dbTasks);
-            });
-        });
+
+        const checkStore = await this.checkStore();
+        let resultBase = [];
+
+        if (checkStore) {
+            resultBase = await this.getBaseTasks();
+            await this.removeBaseTasks();
+            resultBase.push(task);
+        } else {
+            resultBase.push(task);
+        }
+
+        await this.setBaseTasks(resultBase);
+        console.log( await this.getBaseTasks());
     }
 
-    async getLastTask() {
-        await super.getLastTask();
+    getLastTask() {
+        // await super.getLastTask();
         return new Promise ((resolve) => {
             this.getBaseTasks()
             .then ((currentBase) => {
@@ -57,53 +57,69 @@ export class Store extends AbstractStore {
         });
     }
 
-    async removeTask(id) {
-        await super.removeTask();
+    removeTask(id) {
+        // await super.removeTask();
         return new Promise ((resolve) => {
-            this.getBaseTasks()
-            .then((currentBase) => {
-                return new Promise ((resolve) => {
-                    const newBaseTasks = [];
-                    currentBase.forEach((task) => {
-                        if(task.id !== id) {
-                        newBaseTasks.push(task);
-                        }
-                    });
-                    this.setDataBase(newBaseTasks); 
-                    resolve(this._dbTasks);
+            resolve (
+                this.getBaseTasks()
+                .then((currentBase) => {
+                    return new Promise (async (resolve) => {
+                        await this.removeBaseTasks();
+                        const newBaseTasks = [];
+                        currentBase.forEach((task) => {
+                            if(task.id !== id) {
+                            newBaseTasks.push(task);
+                            }
+                        });
+                        resolve(newBaseTasks);
+                    })
+                }) 
+                .then(async (newBaseTasks) => {
+                    await this.setBaseTasks(newBaseTasks);
+                    console.log( await this.getBaseTasks());
                 })
-            }) 
-            .then(() => {
-                resolve ();
-            })
-            .then(() => {
-                console.log(this._dbTasks);
-            });
+            )
         });
     }
    
-    async updateTask(id) {
-        await super.updateTask();
+    updateTask(id) {
+        // await super.updateTask();
         return new Promise ((resolve) => {
             this.getBaseTasks()
             .then((currentBase) => {
-                return new Promise ((resolve) => {
+                return new Promise (async (resolve) => {
                     let newIsDone = '';
+                    await new Promise ((resolve) => {
+                        //  setTimeout(() => {
+                            resolve(this.removeBaseTasks());
+                        //  }, 5000)
+                    });
                     currentBase.forEach((task,index) => {
                         if( task.id === id) {
                             const updateTask = Task.parse(task);
                             updateTask.toggle();
                             currentBase[index] = Task.deparse(updateTask);
-                            this.setDataBase(currentBase);
-                            newIsDone = this._dbTasks[index].isDone;
+                            newIsDone = currentBase[index].isDone;                 
                         }
+                    });
+                    resolve( [currentBase, newIsDone] );
+                });
+            })
+            .then(([currentBase, newIsDone]) => {
+                return new Promise (async (resolve) => {
+                    await new Promise ((resolve) => {
+                        // setTimeout(() => {
+                            resolve(this.setBaseTasks(currentBase));
+                        // }, 5000)
                     });
                     resolve(newIsDone);
                 });
             })
-            .then((newIsDone) => {                
-            resolve(newIsDone);
-            });
+            .then(async (newIsDone) => {
+                console.log( await this.getBaseTasks());
+                resolve(newIsDone);
+            });  
         });
+        
     }
 }

@@ -1,7 +1,7 @@
 export class Render {
     constructor(taskContainerRef, todoApp) {
-        this.taskContainerRef = taskContainerRef;
-        this.todoApp = todoApp;
+        this._taskContainerRef = taskContainerRef;
+        this._todoApp = todoApp;
     }
     
     render(task) {
@@ -42,7 +42,7 @@ export class Render {
         div.appendChild(buttonSave);
         div.appendChild(buttonDelete);
   
-        this.taskContainerRef.appendChild(div);
+        this._taskContainerRef.appendChild(div);
     }
 
     _setTasksClasses(name, arrClasses) {

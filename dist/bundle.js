@@ -42,57 +42,30 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "AbstractStore": () => (/* binding */ AbstractStore)
 /* harmony export */ });
-
 class AbstractStore {
 
-    constructor() {
-        this._timeWait = 1;
-    }
-
-    simulateWaiting(name) {
-
-        const timeWait = this._timeWait;
-        return new Promise (function (resolve) {
-            setTimeout(() => {
-                resolve();// (console.log(`abstract ${name}`));
-            }, timeWait);
-        });
-    }
-
     checkStore() {
-        const name = 'checkStore';
-        // console.log(`wait ${name}`);
-        return this.simulateWaiting(name);
+        throw new Error('not implemented');
     }
 
     getBaseTasks() {
-        const name = 'getBaseTasks';
-        // console.log(`wait ${name}`);
-        return this.simulateWaiting(name);
+        throw new Error('not implemented');
     }
 
     addTask() {
-        const name = 'addTask';
-        // console.log(`wait ${name}`);
-        return this.simulateWaiting(name);
+        throw new Error('not implemented');
     }
 
     getLastTask() {  
-        const name = 'getLastTask';
-        // console.log(`wait ${name}`);
-        return this.simulateWaiting(name);
+        throw new Error('not implemented');
     }
 
     removeTask() {
-        const name = 'removeTask';
-        // console.log(`wait ${name}`);
-        return this.simulateWaiting(name);
+        throw new Error('not implemented');
     }
 
     updateTask() {
-        const name = 'updateTask';
-        // console.log(`wait ${name}`);
-        return this.simulateWaiting(name);
+        throw new Error('not implemented');
     }
 }
 
@@ -112,8 +85,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 class Render {
     constructor(taskContainerRef, todoApp) {
-        this.taskContainerRef = taskContainerRef;
-        this.todoApp = todoApp;
+        this._taskContainerRef = taskContainerRef;
+        this._todoApp = todoApp;
     }
     
     render(task) {
@@ -154,7 +127,7 @@ class Render {
         div.appendChild(buttonSave);
         div.appendChild(buttonDelete);
   
-        this.taskContainerRef.appendChild(div);
+        this._taskContainerRef.appendChild(div);
     }
 
     _setTasksClasses(name, arrClasses) {
@@ -190,6 +163,146 @@ class Render {
 
 /***/ }),
 
+/***/ "./src/js/Store.js":
+/*!*************************!*\
+  !*** ./src/js/Store.js ***!
+  \*************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Store": () => (/* binding */ Store)
+/* harmony export */ });
+/* harmony import */ var _AbstractStore_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./AbstractStore.js */ "./src/js/AbstractStore.js");
+/* harmony import */ var _Task_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Task.js */ "./src/js/Task.js");
+
+
+
+
+class Store extends _AbstractStore_js__WEBPACK_IMPORTED_MODULE_0__.AbstractStore {
+
+    constructor() {
+        super();
+        this._dbTasks = [];
+    }
+
+    
+
+    checkStore() {
+        // await super.checkStore();
+        return Promise.resolve(this._dbTasks.length > 0);
+    }
+
+    setBaseTasks(dataBase) {
+        return Promise.resolve( this._dbTasks = dataBase);
+    }
+
+    removeBaseTasks() {
+        return Promise.resolve(this._dbTasks = []);
+    }
+
+    getBaseTasks() {
+        // await super.getBaseTasks();
+        return Promise.resolve(this._dbTasks);
+    }
+
+    async addTask(task) {
+
+        const checkStore = await this.checkStore();
+        let resultBase = [];
+
+        if (checkStore) {
+            resultBase = await this.getBaseTasks();
+            await this.removeBaseTasks();
+            resultBase.push(task);
+        } else {
+            resultBase.push(task);
+        }
+
+        await this.setBaseTasks(resultBase);
+        console.log( await this.getBaseTasks());
+    }
+
+    getLastTask() {
+        // await super.getLastTask();
+        return new Promise ((resolve) => {
+            this.getBaseTasks()
+            .then ((currentBase) => {
+                const lastTask = _Task_js__WEBPACK_IMPORTED_MODULE_1__.Task.parse(currentBase[currentBase.length - 1]);
+                resolve (lastTask);
+            });
+        });
+    }
+
+    removeTask(id) {
+        // await super.removeTask();
+        return new Promise ((resolve) => {
+            resolve (
+                this.getBaseTasks()
+                .then((currentBase) => {
+                    return new Promise (async (resolve) => {
+                        await this.removeBaseTasks();
+                        const newBaseTasks = [];
+                        currentBase.forEach((task) => {
+                            if(task.id !== id) {
+                            newBaseTasks.push(task);
+                            }
+                        });
+                        resolve(newBaseTasks);
+                    })
+                }) 
+                .then(async (newBaseTasks) => {
+                    await this.setBaseTasks(newBaseTasks);
+                    console.log( await this.getBaseTasks());
+                })
+            )
+        });
+    }
+   
+    updateTask(id) {
+        // await super.updateTask();
+        return new Promise ((resolve) => {
+            this.getBaseTasks()
+            .then((currentBase) => {
+                return new Promise (async (resolve) => {
+                    let newIsDone = '';
+                    await new Promise ((resolve) => {
+                        //  setTimeout(() => {
+                            resolve(this.removeBaseTasks());
+                        //  }, 5000)
+                    });
+                    currentBase.forEach((task,index) => {
+                        if( task.id === id) {
+                            const updateTask = _Task_js__WEBPACK_IMPORTED_MODULE_1__.Task.parse(task);
+                            updateTask.toggle();
+                            currentBase[index] = _Task_js__WEBPACK_IMPORTED_MODULE_1__.Task.deparse(updateTask);
+                            newIsDone = currentBase[index].isDone;                 
+                        }
+                    });
+                    resolve( [currentBase, newIsDone] );
+                });
+            })
+            .then(([currentBase, newIsDone]) => {
+                return new Promise (async (resolve) => {
+                    await new Promise ((resolve) => {
+                        // setTimeout(() => {
+                            resolve(this.setBaseTasks(currentBase));
+                        // }, 5000)
+                    });
+                    resolve(newIsDone);
+                });
+            })
+            .then(async (newIsDone) => {
+                console.log( await this.getBaseTasks());
+                resolve(newIsDone);
+            });  
+        });
+        
+    }
+}
+
+/***/ }),
+
 /***/ "./src/js/StoreLS.js":
 /*!***************************!*\
   !*** ./src/js/StoreLS.js ***!
@@ -211,43 +324,45 @@ class StoreLS extends _AbstractStore_js__WEBPACK_IMPORTED_MODULE_0__.AbstractSto
         super();
     }
 
-    async checkStore() {
-        
-        await super.checkStore();
+    checkStore() {
+        // await super.checkStore();
         return Promise.resolve(localStorage.getItem('dbTasks') !== null);
     }
 
-    async getBaseTasks() {
+    setBaseTasks(baseName, dataBase) {
+        return Promise.resolve(localStorage.setItem(baseName, JSON.stringify(dataBase)));
+    }
+
+    removeBaseTasks(baseName) {
+        return Promise.resolve(localStorage.removeItem(baseName));
+    }
+
+    getBaseTasks() {
         
-        await super.getBaseTasks();
+        // await super.getBaseTasks();
         return Promise.resolve(JSON.parse(localStorage.getItem('dbTasks')));
     }
 
     async addTask(task) {
+        
+        // await super.addTask();
+        const checkStore = await this.checkStore();
+        let resultBase = [];
 
-        await super.addTask();
-        return Promise.resolve(async () => {
-            await this.checkStore()
-            .then(async (checkStore) => {
-                if (checkStore) {
-                   await this.getBaseTasks()
-                    .then((currentBase) => {
-                        localStorage.removeItem('dbTasks');
-                        currentBase.push(task);
-                        Promise.resolve(localStorage.setItem('dbTasks', JSON.stringify(currentBase)));
-                    });
-                } else {
-                    const newCurrentBase = [];
-                    newCurrentBase.push(task);
-                    Promise.resolve(localStorage.setItem('dbTasks', JSON.stringify(newCurrentBase)));
-                }
-            });
-        });
+        if (checkStore) {
+            resultBase = await this.getBaseTasks();
+            await this.removeBaseTasks('dbTasks');
+            resultBase.push(task);
+        } else {
+            resultBase.push(task);
+        }
+
+        await this.setBaseTasks('dbTasks', resultBase);
     }
 
-    async getLastTask() {
+    getLastTask() {
 
-        await super.getLastTask();
+        // await super.getLastTask();
         return new Promise ((resolve) => {
             this.getBaseTasks()
             .then ((currentBase) => {
@@ -257,19 +372,15 @@ class StoreLS extends _AbstractStore_js__WEBPACK_IMPORTED_MODULE_0__.AbstractSto
         });
     }
 
-    async removeTask(id) {
+    removeTask(id) {
 
-        await super.removeTask();
+        // await super.removeTask();
         return new Promise ((resolve) => {
-            Promise.resolve(this.getBaseTasks())
-            .then((currentBase) => {
-                return new Promise ((resolve) => {
-                    const promise = new Promise ((resolve) => {
-                            // setTimeout(() => {
-                                resolve(localStorage.removeItem('dbTasks'));
-                            // }, 5000)
-                        });           
-                    promise.then (() => {
+            resolve (
+                this.getBaseTasks()
+                .then((currentBase) => {
+                    return new Promise (async (resolve) => {
+                        await this.removeBaseTasks('dbTasks');
                         const newBaseTasks = []; 
                         currentBase.forEach((task) => {
                             if( task.id !== id) {
@@ -278,61 +389,46 @@ class StoreLS extends _AbstractStore_js__WEBPACK_IMPORTED_MODULE_0__.AbstractSto
                         });
                         resolve(newBaseTasks);
                     })
+                }) 
+                .then(async (newBaseTasks) => {
+                    await this.setBaseTasks('dbTasks', newBaseTasks);
                 })
-            }) 
-            .then((newBaseTasks) => {
-                new Promise ((resolve) => {
-                    // setTimeout(() => {
-                        resolve(
-                            localStorage.setItem(
-                                'dbTasks', JSON.stringify(newBaseTasks)));
-                    // }, 5000);
-                })
-                resolve ();
-            })
+            )
         });
     }
 
-    async updateTask(id) {
+    updateTask(id) {
 
-        await super.updateTask();
+        // await super.updateTask();
         return new Promise ((resolve) => {
-            Promise.resolve(this.getBaseTasks())
+            this.getBaseTasks()
             .then((currentBase) => {
-                return new Promise ((resolve) => {
+                return new Promise (async (resolve) => {
                     let newIsDone = '';
-                    const promise = new Promise ((resolve) => {
+                    await new Promise ((resolve) => {
                         //  setTimeout(() => {
-                            resolve(localStorage.removeItem('dbTasks'));
+                            resolve(this.removeBaseTasks('dbTasks'));
                         //  }, 5000)
                     });
-                    promise.then(() => {
-                        currentBase.forEach((task, index) => {
-                            if (task.id === id) {
-                                const updateTask = _Task_js__WEBPACK_IMPORTED_MODULE_1__.Task.parse(task);
-                                updateTask.toggle();
-                                currentBase[index] = _Task_js__WEBPACK_IMPORTED_MODULE_1__.Task.deparse(updateTask);
-                                newIsDone = currentBase[index].isDone;  
-                            }
-                        });
-                        resolve( [currentBase, newIsDone] );
+                    currentBase.forEach((task, index) => {
+                        if (task.id === id) {
+                            const updateTask = _Task_js__WEBPACK_IMPORTED_MODULE_1__.Task.parse(task);
+                            updateTask.toggle();
+                            currentBase[index] = _Task_js__WEBPACK_IMPORTED_MODULE_1__.Task.deparse(updateTask);
+                            newIsDone = currentBase[index].isDone;  
+                        }
                     });
+                    resolve( [currentBase, newIsDone] );
                 });
             })
             .then (([currentBase, newIsDone]) => {
-                return new Promise ((resolve) => {
-                    const promise = new Promise ((resolve) => {
+                return new Promise (async (resolve) => {
+                    await new Promise ((resolve) => {
                         // setTimeout(() => {
-                            resolve(
-                                localStorage.setItem(
-                                    'dbTasks',
-                                    JSON.stringify(currentBase)
-                            ));
+                            resolve(this.setBaseTasks('dbTasks', currentBase));
                         // }, 5000)
                     });
-                    promise.then(() => {
-                        resolve(newIsDone);
-                    });
+                    resolve(newIsDone);
                 });
             })
             .then((newIsDone) => {
@@ -414,41 +510,40 @@ __webpack_require__.r(__webpack_exports__);
 
 class TaskManager {
     constructor(store) {
-        this.store = store;
+        this._store = store;
     }
 
     checkStore() {
-        return this.store.checkStore();
+        return this._store.checkStore();
     }
 
     getStore() {
-        return this.store.getBaseTasks();
+        return this._store.getBaseTasks();
     }
 
-    createTask(title, date) {
+    async createTask(title, date) {
        
         this.id = `task${Date.now()}`;
-        this.isDone = false;
         const newTask = _Task_js__WEBPACK_IMPORTED_MODULE_0__.Task.deparse({
             id: this.id,
             title: title,
             date: date,
-            isDone: this.isDone
+            isDone: false
         });
         console.log(newTask);
-        return this.store.addTask(newTask);
+        await this._store.addTask(newTask);
     }
 
     getLastTask() {
-        return this.store.getLastTask();
+        return this._store.getLastTask();
     }
 
-    deleteTask(id) {
-        return this.store.removeTask(id);
+    async deleteTask(id) {
+        return await this._store.removeTask(id);
     }
 
     toggleTask(id) { 
-       return this.store.updateTask(id);
+       return this._store.updateTask(id);
     }
 }
 
@@ -466,8 +561,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 class Todo {
     constructor(taskManager, render) {
-        this.taskManager = taskManager;
-        this.render = render;
+        this._taskManager = taskManager;
+        this._render = render;
         this._actionsBase = [ 
             { 'actionName': 'Delete', 'actionLink': this.deleteTask.bind(this) },
             { 'actionName': 'Done', 'actionLink': this.doneTask.bind(this) } ];
@@ -483,15 +578,12 @@ class Todo {
     }
 
     firstUpdateTasks() {
-        let firstValueOfStore = ''; 
-        this.taskManager.checkStore()
-        .then((existenceDataAtStore) => {
-            if (existenceDataAtStore) { 
-                firstValueOfStore = this.taskManager.getStore()
-                .then((firstValueOfStore) => {
-                    firstValueOfStore.forEach((task) => {
-                        this.render.render(task);    
-                    });
+        this._taskManager.checkStore()
+        .then( async (existenceDataAtStore) => {
+            if (existenceDataAtStore) {
+                const firstValueOfStore = await this._taskManager.getStore();
+                firstValueOfStore.forEach((task) => {
+                    this._render.render(task);    
                 });
             }
         })
@@ -500,21 +592,14 @@ class Todo {
         });
     }
 
-    addTask() {
-        const inputTitleRef = document.querySelector(".title").value;
-        const inputDateRef = document.querySelector(".date").value;
-        // console.log(`${inputTitleRef} ${inputDateRef}`);
-        
-        this.taskManager.createTask(inputTitleRef, inputDateRef)
-        .then(async (data) => {
-            await data();
-        })
+    addTask(inputTitleRef, inputDateRef) {
+        this._taskManager.createTask(inputTitleRef, inputDateRef)
         .then (() => {
-            return this.taskManager.getLastTask();
+            return this._taskManager.getLastTask();
         })
         .then((data) => {  
-                this.render.render( data );
-                this.render.resetInputsTitleDate();
+                this._render.render( data );
+                this._render.resetInputsTitleDate();
         })
         .then(() => {
             this.showLastMessage();
@@ -559,9 +644,9 @@ class Todo {
     }
 
     deleteTask(idElement) {
-        this.taskManager.deleteTask(idElement)
+        this._taskManager.deleteTask(idElement)
         .then(() => {
-            this.render.removeTaskById(idElement);
+            this._render.removeTaskById(idElement);
         })
         .then(() => {
             this.showLastMessage();
@@ -569,11 +654,9 @@ class Todo {
     }
 
     doneTask(idElement) {   
-        this.taskManager.toggleTask(idElement)
+        this._taskManager.toggleTask(idElement)
         .then((isDone) => {
-            // console.log(isDone);
-            
-        this.render.renderSingleTaskById(idElement, isDone);
+        this._render.renderSingleTaskById(idElement, isDone);
         })
         .then(() => {
             this.showLastMessage();
@@ -594,11 +677,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "TodoApp": () => (/* binding */ TodoApp)
 /* harmony export */ });
-/* harmony import */ var _StoreLS_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./StoreLS.js */ "./src/js/StoreLS.js");
-/* harmony import */ var _TaskManager_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./TaskManager.js */ "./src/js/TaskManager.js");
-/* harmony import */ var _Render_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Render.js */ "./src/js/Render.js");
-/* harmony import */ var _Todo_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./Todo.js */ "./src/js/Todo.js");
-// import { Store } from "./Store";
+/* harmony import */ var _Store__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Store */ "./src/js/Store.js");
+/* harmony import */ var _StoreLS_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./StoreLS.js */ "./src/js/StoreLS.js");
+/* harmony import */ var _TaskManager_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./TaskManager.js */ "./src/js/TaskManager.js");
+/* harmony import */ var _Render_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./Render.js */ "./src/js/Render.js");
+/* harmony import */ var _Todo_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./Todo.js */ "./src/js/Todo.js");
+
 
 
 
@@ -607,24 +691,26 @@ __webpack_require__.r(__webpack_exports__);
 class TodoApp {
     constructor() {
         // const store = new Store();
-        const store = new _StoreLS_js__WEBPACK_IMPORTED_MODULE_0__.StoreLS();
-        const taskManager = new _TaskManager_js__WEBPACK_IMPORTED_MODULE_1__.TaskManager(store, this); 
-        const render = new _Render_js__WEBPACK_IMPORTED_MODULE_2__.Render(document.querySelector('.tasks'), this);
-        this.todo = new _Todo_js__WEBPACK_IMPORTED_MODULE_3__.Todo(taskManager, render);
+        const store = new _StoreLS_js__WEBPACK_IMPORTED_MODULE_1__.StoreLS();
+        const taskManager = new _TaskManager_js__WEBPACK_IMPORTED_MODULE_2__.TaskManager(store, this); 
+        const render = new _Render_js__WEBPACK_IMPORTED_MODULE_3__.Render(document.querySelector('.tasks'), this);
+        this._todo = new _Todo_js__WEBPACK_IMPORTED_MODULE_4__.Todo(taskManager, render);
     }
 
     execute() {
-        this.todo.firstUpdateTasks();
+        this._todo.firstUpdateTasks();
 
         const buttonCreate = document.querySelector(".btnCreate");
       
         buttonCreate.addEventListener("click", () => {
-            this.todo.addTask();
+            const inputTitleRef = document.querySelector(".title").value;
+            const inputDateRef = document.querySelector(".date").value;            
+            this._todo.addTask(inputTitleRef, inputDateRef);
         });
 
         const tasksRef = document.querySelector(".tasks");
         tasksRef.addEventListener("click", () => {
-            this.todo.clickTask(tasksRef);
+            this._todo.clickTask(tasksRef);
        });
     }
     

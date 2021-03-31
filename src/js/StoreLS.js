@@ -7,43 +7,45 @@ export class StoreLS extends AbstractStore {
         super();
     }
 
-    async checkStore() {
-        
-        await super.checkStore();
+    checkStore() {
+        // await super.checkStore();
         return Promise.resolve(localStorage.getItem('dbTasks') !== null);
     }
 
-    async getBaseTasks() {
+    setBaseTasks(baseName, dataBase) {
+        return Promise.resolve(localStorage.setItem(baseName, JSON.stringify(dataBase)));
+    }
+
+    removeBaseTasks(baseName) {
+        return Promise.resolve(localStorage.removeItem(baseName));
+    }
+
+    getBaseTasks() {
         
-        await super.getBaseTasks();
+        // await super.getBaseTasks();
         return Promise.resolve(JSON.parse(localStorage.getItem('dbTasks')));
     }
 
     async addTask(task) {
+        
+        // await super.addTask();
+        const checkStore = await this.checkStore();
+        let resultBase = [];
 
-        await super.addTask();
-        return Promise.resolve(async () => {
-            await this.checkStore()
-            .then(async (checkStore) => {
-                if (checkStore) {
-                   await this.getBaseTasks()
-                    .then((currentBase) => {
-                        localStorage.removeItem('dbTasks');
-                        currentBase.push(task);
-                        Promise.resolve(localStorage.setItem('dbTasks', JSON.stringify(currentBase)));
-                    });
-                } else {
-                    const newCurrentBase = [];
-                    newCurrentBase.push(task);
-                    Promise.resolve(localStorage.setItem('dbTasks', JSON.stringify(newCurrentBase)));
-                }
-            });
-        });
+        if (checkStore) {
+            resultBase = await this.getBaseTasks();
+            await this.removeBaseTasks('dbTasks');
+            resultBase.push(task);
+        } else {
+            resultBase.push(task);
+        }
+
+        await this.setBaseTasks('dbTasks', resultBase);
     }
 
-    async getLastTask() {
+    getLastTask() {
 
-        await super.getLastTask();
+        // await super.getLastTask();
         return new Promise ((resolve) => {
             this.getBaseTasks()
             .then ((currentBase) => {
@@ -53,19 +55,15 @@ export class StoreLS extends AbstractStore {
         });
     }
 
-    async removeTask(id) {
+    removeTask(id) {
 
-        await super.removeTask();
+        // await super.removeTask();
         return new Promise ((resolve) => {
-            Promise.resolve(this.getBaseTasks())
-            .then((currentBase) => {
-                return new Promise ((resolve) => {
-                    const promise = new Promise ((resolve) => {
-                            // setTimeout(() => {
-                                resolve(localStorage.removeItem('dbTasks'));
-                            // }, 5000)
-                        });           
-                    promise.then (() => {
+            resolve (
+                this.getBaseTasks()
+                .then((currentBase) => {
+                    return new Promise (async (resolve) => {
+                        await this.removeBaseTasks('dbTasks');
                         const newBaseTasks = []; 
                         currentBase.forEach((task) => {
                             if( task.id !== id) {
@@ -74,61 +72,46 @@ export class StoreLS extends AbstractStore {
                         });
                         resolve(newBaseTasks);
                     })
+                }) 
+                .then(async (newBaseTasks) => {
+                    await this.setBaseTasks('dbTasks', newBaseTasks);
                 })
-            }) 
-            .then((newBaseTasks) => {
-                new Promise ((resolve) => {
-                    // setTimeout(() => {
-                        resolve(
-                            localStorage.setItem(
-                                'dbTasks', JSON.stringify(newBaseTasks)));
-                    // }, 5000);
-                })
-                resolve ();
-            })
+            )
         });
     }
 
-    async updateTask(id) {
+    updateTask(id) {
 
-        await super.updateTask();
+        // await super.updateTask();
         return new Promise ((resolve) => {
-            Promise.resolve(this.getBaseTasks())
+            this.getBaseTasks()
             .then((currentBase) => {
-                return new Promise ((resolve) => {
+                return new Promise (async (resolve) => {
                     let newIsDone = '';
-                    const promise = new Promise ((resolve) => {
+                    await new Promise ((resolve) => {
                         //  setTimeout(() => {
-                            resolve(localStorage.removeItem('dbTasks'));
+                            resolve(this.removeBaseTasks('dbTasks'));
                         //  }, 5000)
                     });
-                    promise.then(() => {
-                        currentBase.forEach((task, index) => {
-                            if (task.id === id) {
-                                const updateTask = Task.parse(task);
-                                updateTask.toggle();
-                                currentBase[index] = Task.deparse(updateTask);
-                                newIsDone = currentBase[index].isDone;  
-                            }
-                        });
-                        resolve( [currentBase, newIsDone] );
+                    currentBase.forEach((task, index) => {
+                        if (task.id === id) {
+                            const updateTask = Task.parse(task);
+                            updateTask.toggle();
+                            currentBase[index] = Task.deparse(updateTask);
+                            newIsDone = currentBase[index].isDone;  
+                        }
                     });
+                    resolve( [currentBase, newIsDone] );
                 });
             })
             .then (([currentBase, newIsDone]) => {
-                return new Promise ((resolve) => {
-                    const promise = new Promise ((resolve) => {
+                return new Promise (async (resolve) => {
+                    await new Promise ((resolve) => {
                         // setTimeout(() => {
-                            resolve(
-                                localStorage.setItem(
-                                    'dbTasks',
-                                    JSON.stringify(currentBase)
-                            ));
+                            resolve(this.setBaseTasks('dbTasks', currentBase));
                         // }, 5000)
                     });
-                    promise.then(() => {
-                        resolve(newIsDone);
-                    });
+                    resolve(newIsDone);
                 });
             })
             .then((newIsDone) => {

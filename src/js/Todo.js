@@ -1,7 +1,7 @@
 export class Todo {
     constructor(taskManager, render) {
-        this.taskManager = taskManager;
-        this.render = render;
+        this._taskManager = taskManager;
+        this._render = render;
         this._actionsBase = [ 
             { 'actionName': 'Delete', 'actionLink': this.deleteTask.bind(this) },
             { 'actionName': 'Done', 'actionLink': this.doneTask.bind(this) } ];
@@ -17,15 +17,12 @@ export class Todo {
     }
 
     firstUpdateTasks() {
-        let firstValueOfStore = ''; 
-        this.taskManager.checkStore()
-        .then((existenceDataAtStore) => {
-            if (existenceDataAtStore) { 
-                firstValueOfStore = this.taskManager.getStore()
-                .then((firstValueOfStore) => {
-                    firstValueOfStore.forEach((task) => {
-                        this.render.render(task);    
-                    });
+        this._taskManager.checkStore()
+        .then( async (existenceDataAtStore) => {
+            if (existenceDataAtStore) {
+                const firstValueOfStore = await this._taskManager.getStore();
+                firstValueOfStore.forEach((task) => {
+                    this._render.render(task);    
                 });
             }
         })
@@ -34,21 +31,14 @@ export class Todo {
         });
     }
 
-    addTask() {
-        const inputTitleRef = document.querySelector(".title").value;
-        const inputDateRef = document.querySelector(".date").value;
-        // console.log(`${inputTitleRef} ${inputDateRef}`);
-        
-        this.taskManager.createTask(inputTitleRef, inputDateRef)
-        .then(async (data) => {
-            await data();
-        })
+    addTask(inputTitleRef, inputDateRef) {
+        this._taskManager.createTask(inputTitleRef, inputDateRef)
         .then (() => {
-            return this.taskManager.getLastTask();
+            return this._taskManager.getLastTask();
         })
         .then((data) => {  
-                this.render.render( data );
-                this.render.resetInputsTitleDate();
+                this._render.render( data );
+                this._render.resetInputsTitleDate();
         })
         .then(() => {
             this.showLastMessage();
@@ -93,9 +83,9 @@ export class Todo {
     }
 
     deleteTask(idElement) {
-        this.taskManager.deleteTask(idElement)
+        this._taskManager.deleteTask(idElement)
         .then(() => {
-            this.render.removeTaskById(idElement);
+            this._render.removeTaskById(idElement);
         })
         .then(() => {
             this.showLastMessage();
@@ -103,11 +93,9 @@ export class Todo {
     }
 
     doneTask(idElement) {   
-        this.taskManager.toggleTask(idElement)
+        this._taskManager.toggleTask(idElement)
         .then((isDone) => {
-            // console.log(isDone);
-            
-        this.render.renderSingleTaskById(idElement, isDone);
+        this._render.renderSingleTaskById(idElement, isDone);
         })
         .then(() => {
             this.showLastMessage();

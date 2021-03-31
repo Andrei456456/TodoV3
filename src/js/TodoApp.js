@@ -1,4 +1,4 @@
-// import { Store } from "./Store";
+import { Store } from "./Store";
 import { StoreLS } from "./StoreLS.js";
 import { TaskManager } from "./TaskManager.js";
 import { Render } from "./Render.js";
@@ -10,21 +10,23 @@ export class TodoApp {
         const store = new StoreLS();
         const taskManager = new TaskManager(store, this); 
         const render = new Render(document.querySelector('.tasks'), this);
-        this.todo = new Todo(taskManager, render);
+        this._todo = new Todo(taskManager, render);
     }
 
     execute() {
-        this.todo.firstUpdateTasks();
+        this._todo.firstUpdateTasks();
 
         const buttonCreate = document.querySelector(".btnCreate");
       
         buttonCreate.addEventListener("click", () => {
-            this.todo.addTask();
+            const inputTitleRef = document.querySelector(".title").value;
+            const inputDateRef = document.querySelector(".date").value;            
+            this._todo.addTask(inputTitleRef, inputDateRef);
         });
 
         const tasksRef = document.querySelector(".tasks");
         tasksRef.addEventListener("click", () => {
-            this.todo.clickTask(tasksRef);
+            this._todo.clickTask(tasksRef);
        });
     }
     
